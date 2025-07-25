@@ -47,8 +47,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/forevermissed-clone.git
-cd forevermissed-clone
+git clone https://github.com/yourusername/echoes.git
+cd echoes
 ```
 
 ### 2. Install Dependencies
@@ -73,7 +73,7 @@ Add the following environment variables:
 
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/forevermissed"
+DATABASE_URL="postgresql://username:password@localhost:5432/echoes"
 
 # Authentication
 NEXTAUTH_URL="http://localhost:3000"
@@ -149,7 +149,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 ## 📁 Project Structure
 
 ```
-forevermissed-clone/
+echoes/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── api/               # API routes
@@ -387,7 +387,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 For support and questions:
 
 - **Email**: support@yourproject.com
-- **GitHub Issues**: [Create an issue](https://github.com/yourusername/forevermissed-clone/issues)
+- **GitHub Issues**: [Create an issue](https://github.com/yourusername/echoes/issues)
 - **Documentation**: [Full documentation](https://yourproject.com/docs)
 
 ---
