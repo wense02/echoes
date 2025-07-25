@@ -1,0 +1,282 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  avatar        String?
+  emailVerified Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  plan          Plan      @default(FREE)
+  planExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  memorialsOwned      Memorial[]       @relation("MemorialOwner")
+  memorialsCollaborated Memorial[]     @relation("MemorialCollaborators")
+  tributes            Tribute[]
+  photos              Photo[]
+  invitations         Invitation[]     @relation("InvitationSender")
+  receivedInvitations Invitation[]     @relation("InvitationReceiver")
+  payments            Payment[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+model Memorial {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime
+  dateOfPassing    DateTime
+  biography        String?
+  location         String?
+  avatar           String?
+  coverImage       String?
+  theme            MemorialTheme     @default(CLASSIC)
+  privacy          MemorialPrivacy   @default(PUBLIC)
+  isActive         Boolean           @default(true)
+  musicUrl         String?
+  musicTitle       String?
+  viewCount        Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Owner and collaborators
+  ownerId       String
+  owner         User     @relation("MemorialOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  collaborators User[]   @relation("MemorialCollaborators")
+
+  // Relations
+  photos        Photo[]
+  tributes      Tribute[]
+  invitations   Invitation[]
+  timeline      TimelineEvent[]
+  reminders     Reminder[]
+
+  @@map("memorials")
+}
+
+model Photo {
+  id          String    @id @default(cuid())
+  url         String
+  publicId    String    // Cloudinary public ID
+  caption     String?
+  altText     String?
+  order       Int       @default(0)
+  isApproved  Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  memorialId  String
+  memorial    Memorial  @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id])
+
+  @@map("photos")
+}
+
+model Tribute {
+  id          String      @id @default(cuid())
+  content     String
+  type        TributeType @default(MESSAGE)
+  isApproved  Boolean     @default(false)
+  isPublic    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  memorialId  String
+  memorial    Memorial    @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id])
+
+  @@map("tributes")
+}
+
+model TimelineEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  location    String?
+  photoUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  memorialId  String
+  memorial    Memorial  @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+
+  @@map("timeline_events")
+}
+
+model Invitation {
+  id         String           @id @default(cuid())
+  email      String
+  role       CollaboratorRole @default(VIEWER)
+  status     InvitationStatus @default(PENDING)
+  token      String           @unique
+  expiresAt  DateTime
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Relations
+  memorialId   String
+  memorial     Memorial @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User     @relation("InvitationSender", fields: [senderId], references: [id])
+  receiverId   String?
+  receiver     User?    @relation("InvitationReceiver", fields: [receiverId], references: [id])
+
+  @@map("invitations")
+}
+
+model Reminder {
+  id         String       @id @default(cuid())
+  type       ReminderType
+  date       DateTime
+  isActive   Boolean      @default(true)
+  lastSent   DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  // Relations
+  memorialId String
+  memorial   Memorial     @relation(fields: [memorialId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  stripeId      String        @unique
+  amount        Int           // Amount in cents
+  currency      String        @default("usd")
+  status        PaymentStatus
+  plan          Plan
+  planDuration  PlanDuration?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  title     String
+  content   String
+  type      NotificationType
+  isRead    Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enums
+enum Plan {
+  FREE
+  PREMIUM_MONTHLY
+  PREMIUM_ANNUAL
+  LIFETIME
+}
+
+enum PlanDuration {
+  MONTHLY
+  ANNUAL
+  LIFETIME
+}
+
+enum MemorialTheme {
+  CLASSIC
+  ELEGANT
+  MODERN
+  NATURE
+  PEACEFUL
+  CELEBRATION
+  REMEMBRANCE
+  SUNSET
+  FLORAL
+  MINIMALIST
+}
+
+enum MemorialPrivacy {
+  PUBLIC
+  PRIVATE
+  INVITE_ONLY
+}
+
+enum TributeType {
+  MESSAGE
+  STORY
+  MEMORY
+  CONDOLENCE
+  PRAYER
+  POEM
+}
+
+enum CollaboratorRole {
+  ADMIN
+  EDITOR
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum ReminderType {
+  BIRTHDAY
+  ANNIVERSARY
+  CUSTOM
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum NotificationType {
+  TRIBUTE_ADDED
+  PHOTO_ADDED
+  INVITATION_RECEIVED
+  REMINDER
+  SYSTEM
+  PAYMENT
+}
